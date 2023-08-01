@@ -8,7 +8,7 @@ namespace RShell
         private static FunctionEvaluator m_FunctionEvaluator;
         private static UdpHost m_UdpHost;
 
-        public static FunctionEvaluator FunctionEvaluator
+        private static FunctionEvaluator FunctionEvaluator
         {
             get
             {
@@ -38,11 +38,11 @@ namespace RShell
                 m_UdpHost.MessageReceived += OnMessageReceived;
                 m_UdpHost.Start();
                 Application.quitting += OnApplicationQuit;
-                Debug.Log($"Shell Listening... {port}");    
+                Debug.Log($"RShell Listening... {port}");    
             }
             else
             {
-                Debug.Log("Listen: Shell is already listening.. ");
+                Debug.Log("RShell is already listening.. ");
             }
         }
 
@@ -67,7 +67,7 @@ namespace RShell
 
             FunctionEvaluator.Execute(code, out var returnObj);
             var msg = returnObj == null ? "ok" : returnObj.ToString();
-            Debug.Log($"Shell Execute: {code}\n{returnObj}");
+            Debug.Log($"RShell Execute: {code}\n{returnObj}");
             m_UdpHost.Send(msg);
         }
 
@@ -75,7 +75,7 @@ namespace RShell
         {
             if (FunctionEvaluator.Execute(code, out var returnObj))
                 return returnObj;
-            throw new Exception($"execute failed \n{returnObj}");
+            throw new Exception($"RShell execute failed \n{returnObj}");
         }
 
         public static void AddGlobalEnvironmentNameSpace(string nameSpace)
