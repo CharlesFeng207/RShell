@@ -63,6 +63,9 @@ namespace RShell
                 result = Execute("TestEvaluator.GetInstance().GetSetValue");
                 Assert.IsTrue(result.ToString() == "1");
                 
+                result = Execute("TestEvaluator.GetInstance().SuperValue");
+                Assert.IsTrue(result.ToString() == "3");
+                
                 result = Execute("TestEvaluator.StaticAdd(RShell.TestEvaluator.StaticPublicValue, TestEvaluator.StaticAdd(1, 1))");
                 Assert.IsTrue(result.ToString() == "3");
 
@@ -76,8 +79,12 @@ namespace RShell
                 
                 result = Execute("TestEvaluator.TestOverload(\"TestEvaluator.StaticAdd(10,10)\")");
                 Assert.IsTrue(result.ToString() == "TestEvaluator.StaticAdd(10,10)");
+                
                 result = Execute("TestEvaluator.TestObj(TestEvaluator.GetInstance(), \"hello world\", TestEvaluator.GetInstance(), 10, 10);");
                 Assert.IsTrue(result.ToString() == "hello world 10 10");
+                
+                result = Execute("TestEvaluator.TestDefaultValue(1)");
+                Assert.IsTrue(result.ToString() == "3");
                 
                 result = Execute("TestEvaluator.GetInstance()");
                 Assert.IsNotNull(result);

@@ -275,7 +275,7 @@ namespace RShell
         private object ExecuteValueGet(Type targetType, object targetInstance, string code)
         {
             BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public |
-                                 BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.GetProperty;
+                                 BindingFlags.NonPublic | BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.FlattenHierarchy;
             PropertyInfo propertyInfo = targetType.GetProperty(code, flags);
             if (propertyInfo != null)
             {
@@ -297,7 +297,7 @@ namespace RShell
 
         private object ExecuteMethodCall(Type targetType, object targetInstance, string code)
         {
-            ExtractFunctionCall(code, out var methodName, out var parameterObjs);
+            ExtractFunctionCall(code, out var methodName, out var inputParameterObjs);
 
             var methods = targetType.GetMethods();
             foreach (var method in methods)
@@ -305,17 +305,36 @@ namespace RShell
                 if (method.Name != methodName)
                     continue;
 
-                ParameterInfo[] parameterInfo = method.GetParameters();
-                if (parameterInfo.Length != parameterObjs.Length)
+                ParameterInfo[] methodParameterInfo = method.GetParameters();
+                if (methodParameterInfo.Length < inputParameterObjs.Length)
                     continue;
 
-                object[] parameters = new object[parameterInfo.Length];
+                for (int i = 0; i < methodParameterInfo.Length; i++)
+                {
+                    
+                }
+
+                object[] parameters = new object[inputParameterObjs.Length];
 
                 try
                 {
-                    for (int i = 0; i < parameterInfo.Length; i++)
+                    for (int i = 0; i < inputParameterObjs.Length; i++)
                     {
-                        parameters[i] = Convert.ChangeType(parameterObjs[i], parameterInfo[i].ParameterType);
+                        if (inputParameterObjs[i] == null)
+                        {
+                            parameters[i] = null;
+                            continue;
+                        }
+                        
+                        var t = inputParameterObjs[i].GetType();
+                        if (t == methodParameterInfo[i].ParameterType || t.IsSubclassOf(methodParameterInfo[i].ParameterType))
+                        {
+                            parameters[i] = inputParameterObjs[i];
+                        }
+                        else
+                        {
+                            parameters[i] = Convert.ChangeType(inputParameterObjs[i], methodParameterInfo[i].ParameterType);    
+                        }
                     }
                 }
                 catch (Exception e)
@@ -326,7 +345,7 @@ namespace RShell
                 return method.Invoke(targetInstance, parameters);
             }
 
-            throw new Exception($"Can't find method {targetType} {methodName} {Dumper.Do(parameterObjs)}");
+            throw new Exception($"Can't find method {targetType} {methodName} {Dumper.Do(inputParameterObjs)}");
         }
 
         private void ExtractFunctionCall(string code, out string methodName, out object[] parameters)
