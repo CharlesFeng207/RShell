@@ -3,7 +3,7 @@
     /// <summary>
     /// For FunctionEvaluator UnitTest 
     /// </summary>
-    public class TestEvaluator
+    public class TestEvaluator : TestEvaluatorSuper
     {
         private static int StaticPrivateValue;
         public static int StaticPublicValue;
@@ -29,6 +29,11 @@
         public static int TestOverload(int i)
         {
             return i + 1;
+        }
+        
+        public static int TestDefaultValue(int i, int j = 1, int k = 1)
+        {
+            return i + j + k;
         }
 
         public static string TestObj(TestEvaluator a, string str, TestEvaluator b, int i, int j)
@@ -56,4 +61,10 @@
             return a + b;
         }
     }
+
+    public class TestEvaluatorSuper
+    {
+        public int SuperValue = 3;
+    }
+    
 }

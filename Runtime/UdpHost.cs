@@ -29,8 +29,7 @@ namespace RShell
 
         private IPEndPoint m_ReceiveRemoteEndPoint;
         private IPEndPoint m_SendRemoteEndPoint;
-        private string m_RemoteIP; 
-        private int m_RemotePort;
+        
         private SynchronizationContext m_MainContext;
         private Thread m_Thread;
         private int m_MsgId;
