@@ -34,7 +34,16 @@ namespace RShell
         {
             if (m_UdpHost == null)
             {
-                m_UdpHost = new UdpHost(port);
+                try
+                {
+                    m_UdpHost = new UdpHost(port);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogWarning("RShell Listen failed: " + e.Message);
+                    return;
+                }
+               
                 m_UdpHost.MessageReceived += OnMessageReceived;
                 m_UdpHost.Start();
                 Application.quitting += OnApplicationQuit;

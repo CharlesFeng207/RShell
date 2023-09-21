@@ -32,7 +32,7 @@ namespace RShell
             returnObj = null;
             try
             {
-                var parts = ParseCodePart(code);
+                var parts = ParseCodePart(code.Trim());
                 returnObj = FindRootType(ref parts);
                 if (returnObj == null)
                     throw new Exception("Root type not found");
