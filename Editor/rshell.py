@@ -122,12 +122,16 @@ if __name__ == '__main__':
 
     rshell = RShell(address)
     rshell.on_message_received = lambda msg: print(msg)
-    rshell.send("hi")
     
-    while True:
-        message = input(f"{rshell.target_ip}:{rshell.target_port}> ")
-        rshell.send(message)
-        time.sleep(0.1)
+    try:
+        while True:
+            message = input(f"{rshell.target_ip}:{rshell.target_port}> ")
+            rshell.send(message)
+            time.sleep(0.1)
+            pass
+    except KeyboardInterrupt:
+        rshell.close_socket()
+        print("KeyboardInterrupt")
         pass
     
         
