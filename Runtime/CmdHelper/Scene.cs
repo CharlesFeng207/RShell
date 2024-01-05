@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace RShell
 {
@@ -66,6 +68,49 @@ namespace RShell
             }
             
             return sb.ToString();
+        }
+        
+        public static string FindPlayingEffect()
+        {
+            var sb = new StringBuilder();
+            ParticleSystem[] pslist = Object.FindObjectsOfType<ParticleSystem>();
+            int counter = 0;
+            for (int i = 0; i < pslist.Length; i++)
+            {
+                var ps = pslist[i];
+                if (ps.isPlaying)
+                {
+                    counter++;
+                    sb.AppendLine($"{GetTransformPath(ps.transform)} cullingMode:{ps.main.cullingMode} loop:{ps.main.loop} alive:{ps.IsAlive()} isPaused:{ps.isPaused} isStopped:{ps.isStopped}");
+                }
+            }
+
+            sb.AppendLine($"counter: {counter} / {pslist.Length}");
+            return sb.ToString();
+        }
+
+        public static void ChangeEffectCullingMode(ParticleSystemCullingMode mode)
+        {
+            ParticleSystem[] pslist = Object.FindObjectsOfType<ParticleSystem>();
+            
+            for (int i = 0; i < pslist.Length; i++)
+            {
+                var ps = pslist[i];
+                var main = ps.main;
+                main.cullingMode = mode;
+            }
+        }
+        
+        public static string GetTransformPath(Transform transform)
+        {
+            StringBuilder pathBuilder = new StringBuilder(128); // 预分配容量
+            while (transform != null)
+            {
+                pathBuilder.Insert(0, transform.name); // 每次插入到最前面
+                transform = transform.parent;
+                if (transform != null) pathBuilder.Insert(0, "/");
+            }
+            return pathBuilder.ToString();
         }
     }
 }
