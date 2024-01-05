@@ -3,16 +3,12 @@ import threading
 import sys
 import time
 import json
-from enum import Enum
 
-debug_rshell = False
-class ConnectState(Enum):
-    Default = 1,
-    Connecting = 2,
-    Connected = 3,
+
+DebugRShell = False
 
 def print_debug(msg):
-    if debug_rshell:
+    if DebugRShell:
         print(msg)
 
 def receive_message(shell):
@@ -22,12 +18,11 @@ def receive_message(shell):
                 break
             data, addr = shell.client_socket.recvfrom(1024 * 1024)
             msg = json.loads(data.decode('utf-8'))
-            shell.connect_state = ConnectState.Connected
+            shell.is_connecting = False
             shell.add_to_buffer(msg)
         except Exception as e:
-            if debug_rshell:
+            if DebugRShell:
                 print("Error occurred while receiving message:", str(e))
-            shell.connect_state = ConnectState.Default
             break
 
 
@@ -63,7 +58,7 @@ class RShell(object):
         self.target_ip = "127.0.0.1"
         self.target_port = 9999
         self.on_message_received = None
-        self.connect_state = 0
+        self.is_connecting = False
         self.client_socket = None
 
         if address is not None:
@@ -82,9 +77,9 @@ class RShell(object):
         pass
 
     def init_socket(self):
-        if self.connect_state != ConnectState.Connecting:
+        if not self.is_connecting:
             print(f"RShell is connecting ... {self.target_ip}:{self.target_port}")
-            self.connect_state = ConnectState.Connecting
+            self.is_connecting = True
 
         self.waitingMsg = None
         self.msgbuffer = {}
@@ -93,20 +88,21 @@ class RShell(object):
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client_socket.sendto("hi".encode('utf-8'), (self.target_ip, self.target_port))
 
-        self.receive_thread = threading.Thread(target=receive_message, name='rshell', args=(self,))
+        self.receive_thread = threading.Thread(target=receive_message, args=(self,))
         self.receive_thread.start()
         pass
 
     def send(self, message):
         try:
-            if self.connect_state != ConnectState.Connected:
-                self.init_socket()
             self.client_socket.sendto(message.encode('utf-8'), (self.target_ip, self.target_port))    
         except Exception as e:
             print_debug("Error occurred while sending message:", str(e))
+            self.init_socket()
+            time.sleep(1)
+            self.send(message)
         pass
 
-    def sendwait(self, message, retry = 10):
+    def sendwait(self, message, retry = -1):
         self.waitingMsg = None
         self.send(message)
         start_time = time.time()
@@ -121,18 +117,15 @@ class RShell(object):
             pass
         return self.waitingMsg
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     address = sys.argv[1] if len(sys.argv) > 1 else None
-    debug_rshell = True
 
     rshell = RShell(address)
     rshell.on_message_received = lambda msg: print(msg)
-
+    
     try:
         while True:
-            message = input(f"{rshell.target_ip}:{rshell.target_port}>")
-            if message == "":
-                message = "hi"
+            message = input(f"{rshell.target_ip}:{rshell.target_port}> ")
             rshell.send(message)
             time.sleep(0.1)
             pass
@@ -140,3 +133,5 @@ if __name__ == '__main__':
         rshell.close_socket()
         print("KeyboardInterrupt")
         pass
+    
+        

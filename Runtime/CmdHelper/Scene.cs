@@ -81,7 +81,7 @@ namespace RShell
                 if (ps.isPlaying)
                 {
                     counter++;
-                    sb.AppendLine($"{GetTransformPath(ps.transform)} cullingMode:{ps.main.cullingMode} loop:{ps.main.loop} alive:{ps.IsAlive()} isPaused:{ps.isPaused} isStopped:{ps.isStopped}");
+                    sb.AppendLine($"{GetTransformPath(ps.transform)} cullingMode:{ps.main.cullingMode} loop:{ps.main.loop}");
                 }
             }
 

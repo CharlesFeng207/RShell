@@ -48,13 +48,13 @@ namespace RShell
                 result = Execute("TestEvaluator.StaticPrivateValue;");
                 Assert.IsTrue(result.ToString() == "1");
 
-                result = Execute("TestEvaluator.StaticPublicValue");
+                result = Execute("TestEvaluator.StaticPublicValue ");
                 Assert.IsTrue(result.ToString() == "1");
 
                 result = Execute("TestEvaluator.StaticGetSetValue");
                 Assert.IsTrue(result.ToString() == "1");
 
-                result = Execute("TestEvaluator.GetInstance().PublicValue");
+                result = Execute("TestEvaluator.GetInstance().PublicValue  ");
                 Assert.IsTrue(result.ToString() == "1");
 
                 result = Execute("TestEvaluator.GetInstance().m_PrivateValue");
@@ -73,7 +73,7 @@ namespace RShell
                 result = Execute("TestEvaluator.StaticPublicValue");
                 Assert.IsTrue(result.ToString() == "2");
                 
-                Execute("TestEvaluator.StaticPublicValue = TestEvaluator.TestOverload(TestEvaluator.StaticAdd(10,10))");
+                Execute(" TestEvaluator.StaticPublicValue = TestEvaluator.TestOverload(TestEvaluator.StaticAdd(10,10))");
                 result = Execute("TestEvaluator.StaticPublicValue");
                 Assert.IsTrue(result.ToString() == "21");
                 
