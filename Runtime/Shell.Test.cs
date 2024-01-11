@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace RShell
@@ -92,6 +93,18 @@ namespace RShell
                 Execute("TestEvaluator.m_Evaluator = null");
                 result = Execute("TestEvaluator.m_Evaluator");
                 Assert.IsNull(result);
+
+                result = Execute("TestEvaluator.TestEnumFunc(2)");
+                Assert.IsTrue(result.ToString() == "C");
+
+                result = Execute("TestEvaluator.TestEnumFunc(TestEvaluator.TestEnum.A)");
+                Assert.IsTrue(result.ToString() == "A");
+
+                result = Execute("TestEvaluator.InnerClass.Value");
+                Assert.IsTrue(result.ToString() == "999");
+
+                result = Execute("TestEvaluator.InnerClass.InnerInnerClass.Value");
+                Assert.IsTrue(result.ToString() == "999");
                 
                 return "Test Complete!";
             }

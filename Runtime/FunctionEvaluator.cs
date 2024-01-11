@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace RShell
 {
@@ -14,6 +15,8 @@ namespace RShell
             ValueGet
         }
 
+        private Assembly[] m_Assemblies = null;
+        private StringBuilder m_StringBuilder = null;
         private readonly Dictionary<string, Type> m_TypeCache = new Dictionary<string, Type>();
 
         private readonly List<string> m_GlobalEnvironmentNameSpace = new List<string>()
@@ -29,6 +32,13 @@ namespace RShell
 
         public bool Execute(string code, out object returnObj)
         {
+            m_Assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            if (m_StringBuilder == null) m_StringBuilder = new StringBuilder();
+            return ExecuteInnernal(code, out returnObj);
+        }
+
+        private bool ExecuteInnernal(string code, out object returnObj)
+        {
             returnObj = null;
             try
             {
@@ -39,7 +49,9 @@ namespace RShell
 
                 while (parts.Count > 0)
                 {
-                    string p = parts.Dequeue();
+                    string p = parts[0];
+                    parts.RemoveAt(0);
+
                     Type targetType;
                     object targetInstance;
 
@@ -70,19 +82,26 @@ namespace RShell
                             break;
                     }
                 }
+
             }
             catch (Exception ex)
             {
-                returnObj = $"Error executing code: {code}\n{ex.Message}\n{ex.StackTrace}";
+                string innterEx = "";
+                if(ex.InnerException != null)
+                {
+                    innterEx = $"InnerException: {ex.InnerException.Message}\n{ex.InnerException.StackTrace}";
+                }
+
+                returnObj = $"Error executing code: {code}\n{ex.Message}\n{ex.StackTrace}\n{innterEx}";
                 return false;
             }
 
             return true;
         }
 
-        private Queue<string> ParseCodePart(string code)
+        private List<string> ParseCodePart(string code)
         {
-            var parts = new Queue<string>(SyntaxSplit('.', code));
+            var parts = new List<string>(SyntaxSplit('.', code));
             return parts;
         }
 
@@ -146,74 +165,104 @@ namespace RShell
             return SyntaxType.ValueGet;
         }
 
-        private Type FindRootType(ref Queue<string> parts)
+        private Type FindRootType(ref List<string> parts)
         {
-            Assembly[] assemblies = null;
-            var testParts = new Queue<string>(parts);
-            var root = _FindRootType(ref testParts, ref assemblies, false);
+            var root = _FindRootType(ref parts, false);
             if (root == null)
             {
-                testParts = new Queue<string>(parts);
-                root = _FindRootType(ref testParts, ref assemblies, true);
+                root = _FindRootType(ref parts, true);
             }
 
-            parts = testParts;
             return root;
         }
 
-        private Type _FindRootType(ref Queue<string> parts, ref Assembly[] assemblies, bool useGlobalNamespace)
+        private Type _FindRootType(ref List<string> parts, bool useGlobalNamespace)
         {
-            string typeName = null;
-            
-            while (parts.Count > 0)
+            for (int i = 0; i < parts.Count; i++)
             {
-                var p = parts.Dequeue();
-                typeName = string.IsNullOrEmpty(typeName) ? p : $"{typeName}.{p}";
+                int testCount = parts.Count - i;
                 if (useGlobalNamespace)
                 {
                     foreach (var globalNameSpace in m_GlobalEnvironmentNameSpace)
                     {
-                        string testTypeName = $"{globalNameSpace}.{typeName}";
-                        var root = TestType(testTypeName, ref assemblies);
+                        var root = TestType(parts, testCount, globalNameSpace);
                         if (root != null)
+                        {
+                            parts.RemoveRange(0, testCount);
                             return root;
+                        }
                     }
                 }
                 else
                 {
-                    var root = TestType(typeName, ref assemblies);
+                    var root = TestType(parts, testCount);
                     if (root != null)
+                    {
+                        parts.RemoveRange(0, testCount);
                         return root;
+                    }
                 }
             }
 
             return null;
         }
 
-        private Type TestType(string typeName, ref Assembly[] assemblies)
+        private Type TestType(List<string> parts, int count, string globalNameSpace = null)
         {
-            var testTypeName = typeName;
-
-            if (m_TypeCache.TryGetValue(testTypeName, out var value))
+            int maxInnerClassCount = count - 1;
+            string originTypeName = null;
+            for (int innerClassCount = 0; innerClassCount <= maxInnerClassCount; innerClassCount++)
             {
-                if (value != null)
-                    return value;
-            }
-
-            if (assemblies == null) assemblies = AppDomain.CurrentDomain.GetAssemblies();
-
-            foreach (Assembly assembly in assemblies)
-            {
-                var type = assembly.GetType(testTypeName);
-                if (type != null)
+                var testTypeName = GetTypeName(parts, count, innerClassCount, globalNameSpace);
+                if (originTypeName == null)
                 {
-                    m_TypeCache[testTypeName] = type;
-                    return type;
+                    originTypeName = testTypeName;
+                    if (m_TypeCache.TryGetValue(originTypeName, out var value))
+                    {
+                        if (value != null)
+                            return value;
+                    }
+                }
+
+                foreach (Assembly assembly in m_Assemblies)
+                {
+                    var type = assembly.GetType(testTypeName);
+                    if (type != null)
+                    {
+                        m_TypeCache[originTypeName] = type;
+                        return type;
+                    }
                 }
             }
 
-            m_TypeCache[testTypeName] = null;
+            m_TypeCache[originTypeName] = null;
             return null;
+        }
+
+        private string GetTypeName(List<string> parts, int count, int innerClassCount, string globalNameSpace)
+        {
+            m_StringBuilder.Clear();
+
+            if (!string.IsNullOrEmpty(globalNameSpace))
+            {
+                m_StringBuilder.Append(globalNameSpace);
+                m_StringBuilder.Append(".");
+            }
+            
+            int innerClassIndex = count - 1 - innerClassCount;
+            for (int i = 0; i < count; i++)
+            {
+                m_StringBuilder.Append(parts[i]);
+                if (i != count - 1)
+                {
+                    if (i >= innerClassIndex)
+                        m_StringBuilder.Append("+");
+                    else
+                        m_StringBuilder.Append(".");
+                }
+                    
+            }
+            return m_StringBuilder.ToString();
         }
 
         private object ProcessParameter(string parameterStr)
@@ -229,7 +278,7 @@ namespace RShell
             
             if (!double.TryParse(parameterStr, out _) && parameterStr.Contains("."))
             {
-                if(Execute(parameterStr, out var returnObj))
+                if(ExecuteInnernal(parameterStr, out var returnObj))
                     return returnObj;
                 throw new Exception($"ProcessParameter failed:\n{returnObj}");
             }
@@ -336,7 +385,14 @@ namespace RShell
                         }
                         else
                         {
-                            parameters[i] = Convert.ChangeType(inputObj, expectedInfo.ParameterType);    
+                            if(expectedInfo.ParameterType.IsEnum && int.TryParse(inputObj.ToString(), out var enumValue))
+                            {
+                                parameters[i] = Enum.ToObject(expectedInfo.ParameterType, enumValue);
+                            }
+                            else
+                            {
+                                parameters[i] = Convert.ChangeType(inputObj, expectedInfo.ParameterType);
+                            }
                         }
                     }
                 }

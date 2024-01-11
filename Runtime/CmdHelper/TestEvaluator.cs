@@ -5,6 +5,23 @@
     /// </summary>
     public class TestEvaluator : TestEvaluatorSuper
     {
+        public class InnerClass
+        {
+            public class InnerInnerClass
+            {
+                public static int Value = 999;
+            }
+
+            public static int Value = 999;
+        }
+
+        public enum TestEnum
+        {
+            A = 0,
+            B = 1,
+            C = 2
+        }
+
         private static int StaticPrivateValue;
         public static int StaticPublicValue;
         
@@ -44,6 +61,11 @@
         public static string TestOverload(string str)
         {
             return str;
+        }
+
+        public static TestEnum TestEnumFunc(TestEnum e)
+        {
+            return e;
         }
         
         public int PublicValue;
