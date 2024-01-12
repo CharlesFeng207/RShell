@@ -81,7 +81,8 @@ namespace RShell
 
             try
             {
-                while (m_MessagesToSend.TryDequeue(out var message))
+                Message message;
+                while (m_MessagesToSend.TryDequeue(out message))
                 {
                     var sendBytes = Encoding.UTF8.GetBytes(JsonUtility.ToJson(message));
                     lock (this)

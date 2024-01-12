@@ -56,8 +56,9 @@ namespace RShell
             Type t = obj.GetType();
 
             // Repeat field
-            if (obj is IList list)
+            if (obj is IList)
             {
+                var list = obj as IList;
                 TextBuilder.Append("[");
                 foreach (object v in list)
                 {
@@ -77,8 +78,9 @@ namespace RShell
                 TextBuilder.Append(obj);
                 TextBuilder.Append("\"");
             }
-            else if (obj is IDictionary dic)
+            else if (obj is IDictionary)
             {
+                var dic = obj as IDictionary;
                 TextBuilder.Append("{");
                 foreach (DictionaryEntry item in dic)
                 {

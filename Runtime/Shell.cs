@@ -20,14 +20,26 @@ namespace RShell
 
         public static int SendMTU
         {
-            get => m_UdpHost.SendMTU;
-            set => m_UdpHost.SendMTU = value;
+            get
+            {
+                return m_UdpHost.SendMTU;
+            }
+            set
+            {
+                m_UdpHost.SendMTU = value;
+            }
         }
 
         public static int SendInterval
         {
-            get => m_UdpHost.SendInterval;
-            set => m_UdpHost.SendInterval = value;
+            get
+            {
+                return m_UdpHost.SendInterval;
+            }
+            set
+            {
+                m_UdpHost.SendInterval = value;
+            }
         }
 
         public static void Listen(int port = 9999)
@@ -73,8 +85,8 @@ namespace RShell
         private static void OnMessageReceived(string code)
         {
             if (string.IsNullOrEmpty(code)) return;
-
-            FunctionEvaluator.Execute(code, out var returnObj);
+            object returnObj;
+            FunctionEvaluator.Execute(code, out returnObj);
             var msg = returnObj == null ? "ok" : returnObj.ToString();
             Debug.Log($"RShell Execute: {code}\n{returnObj}");
             m_UdpHost.Send(msg);
@@ -82,7 +94,8 @@ namespace RShell
 
         public static object Execute(string code)
         {
-            if (FunctionEvaluator.Execute(code, out var returnObj))
+            object returnObj;
+            if (FunctionEvaluator.Execute(code, out returnObj))
                 return returnObj;
             throw new Exception($"RShell execute failed \n{returnObj}");
         }

@@ -54,8 +54,8 @@ namespace RShell
 
                     Type targetType;
                     object targetInstance;
-
-                    if (returnObj is Type type)
+                    var type = returnObj as Type;
+                    if (type != null)
                     {
                         targetType = type;
                         targetInstance = null;
@@ -279,7 +279,8 @@ namespace RShell
             
             if (!double.TryParse(parameterStr, out _) && parameterStr.Contains("."))
             {
-                if(ExecuteInnernal(parameterStr, out var returnObj))
+                object returnObj;
+                if (Execute(parameterStr, out returnObj))
                     return returnObj;
                 throw new Exception($"ProcessParameter failed:\n{returnObj}");
             }
@@ -300,7 +301,9 @@ namespace RShell
 
         private object ExecuteValueSet(Type targetType, object targetInstance, string code)
         {
-            ExtractSetParameter(code, out var leftStr, out var rightObj);
+            string leftStr;
+            object rightObj;
+            ExtractSetParameter(code, out leftStr, out rightObj);
 
             BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public |
                                  BindingFlags.NonPublic | BindingFlags.SetField | BindingFlags.SetProperty;
@@ -347,7 +350,9 @@ namespace RShell
 
         private object ExecuteMethodCall(Type targetType, object targetInstance, string code)
         {
-            ExtractFunctionCall(code, out var methodName, out var inputObjs);
+            string methodName;
+            object[] inputObjs;
+            ExtractFunctionCall(code, out  methodName, out inputObjs);
 
             var methods = targetType.GetMethods();
             foreach (var method in methods)
@@ -385,7 +390,8 @@ namespace RShell
                         }
                         else
                         {
-                            if(expectedInfo.ParameterType.IsEnum && int.TryParse(inputObj.ToString(), out var enumValue))
+							int enumValue;
+                            if(expectedInfo.ParameterType.IsEnum && int.TryParse(inputObj.ToString(), out enumValue))
                             {
                                 parameters[i] = Enum.ToObject(expectedInfo.ParameterType, enumValue);
                             }
