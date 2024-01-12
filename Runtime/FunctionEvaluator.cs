@@ -99,6 +99,7 @@ namespace RShell
             return true;
         }
 
+
         private List<string> ParseCodePart(string code)
         {
             var parts = new List<string>(SyntaxSplit('.', code));
@@ -159,7 +160,7 @@ namespace RShell
             if (code.Contains("="))
                 return SyntaxType.ValueSet;
             
-            if (code.Contains("("))
+            if (code.Contains("(") && code.Contains(")"))
                 return SyntaxType.MethodCall;
 
             return SyntaxType.ValueGet;
@@ -378,8 +379,7 @@ namespace RShell
                             continue;
                         }
                         
-                        var t = inputObj.GetType();
-                        if (t == expectedInfo.ParameterType || t.IsSubclassOf(expectedInfo.ParameterType))
+                        if (expectedInfo.ParameterType.IsInstanceOfType(inputObj))
                         {
                             parameters[i] = inputObj;
                         }
@@ -418,7 +418,7 @@ namespace RShell
                 parameters = Array.Empty<object>();
             }
             else
-            {
+            {                
                 var list = new List<object>();
 
                 var parameterStrArr = SyntaxSplit(',', parameterStr).Select(x => x.Trim());

@@ -1,4 +1,6 @@
-﻿namespace RShell
+﻿using System.Collections.Generic;
+
+namespace RShell
 {
     /// <summary>
     /// For FunctionEvaluator UnitTest 
@@ -30,6 +32,7 @@
             get => StaticPrivateValue;
             set => StaticPrivateValue = value;
         }
+
 
         private static TestEvaluator m_Evaluator; 
         public static TestEvaluator GetInstance()
@@ -67,6 +70,17 @@
         {
             return e;
         }
+
+        public static List<int> TestList()
+        {
+            return new List<int>() {5, 6, 7};
+        }
+
+        public static Dictionary<string, int> TestDic()
+        {
+            return new Dictionary<string, int>() {{"a", 1}, {"b", 2}, {"c", 3}};
+        }
+        
         
         public int PublicValue;
         public float PublicValue2;

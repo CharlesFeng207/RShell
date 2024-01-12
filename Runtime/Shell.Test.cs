@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -105,7 +106,13 @@ namespace RShell
 
                 result = Execute("TestEvaluator.InnerClass.InnerInnerClass.Value");
                 Assert.IsTrue(result.ToString() == "999");
+            
+                result = Execute("Operator.Index(TestEvaluator.TestList(), 1)");
+                Assert.IsTrue(result.ToString() == "6");
                 
+                result = Execute("Operator.Index(TestEvaluator.TestDic(), \"b\")");
+                Assert.IsTrue(result.ToString() == "2");
+
                 return "Test Complete!";
             }
             catch (Exception e)
