@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using UnityEngine;
 
 namespace RShell
@@ -103,6 +104,36 @@ namespace RShell
         public static void AddGlobalEnvironmentNameSpace(string nameSpace)
         {
             FunctionEvaluator.AddGlobalEnvironmentNameSpace(nameSpace);
+        }
+
+        public static int LoadLibrary(string libname)
+        {
+            string tmpPath = $"/data/local/tmp/{libname}";
+            string appPath = $"/data/data/{Application.identifier}/{libname}";
+            bool tmpPathExists = File.Exists(tmpPath);
+            bool appPathExists = File.Exists(appPath);
+            if(!tmpPathExists && !appPathExists)
+            {
+                return 1;
+            }
+
+            if(tmpPathExists)
+            {
+                File.Copy(tmpPath, appPath, true);
+            }
+            
+            var systemClass = new AndroidJavaClass("java.lang.System");
+            try
+            {
+                systemClass.CallStatic("load", appPath);
+            }
+            catch(Exception e)
+            {
+                Debug.LogException(e);
+                return 2;
+            }
+
+            return 0;
         }
     }
 }
