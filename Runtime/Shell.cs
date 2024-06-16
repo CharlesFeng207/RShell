@@ -108,18 +108,18 @@ namespace RShell
 
         public static int LoadLibrary(string libname)
         {
-            string tmpPath = $"/data/local/tmp/{libname}";
+            string exPath = $"sdcard/Android/data/{Application.identifier}/files/{libname}";
             string appPath = $"/data/data/{Application.identifier}/{libname}";
-            bool tmpPathExists = File.Exists(tmpPath);
+            bool exPathExists = File.Exists(exPath);
             bool appPathExists = File.Exists(appPath);
-            if(!tmpPathExists && !appPathExists)
+            if(!exPathExists && !appPathExists)
             {
                 return 1;
             }
 
-            if(tmpPathExists)
+            if(exPathExists)
             {
-                File.Copy(tmpPath, appPath, true);
+                File.Copy(exPath, appPath, true);
             }
             
             var systemClass = new AndroidJavaClass("java.lang.System");
