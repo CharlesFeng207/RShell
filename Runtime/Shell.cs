@@ -6,6 +6,7 @@ namespace RShell
 {
     public static partial class Shell
     {
+        public static bool EnableExecLog = false;
         private static FunctionEvaluator m_FunctionEvaluator;
         private static UdpHost m_UdpHost;
 
@@ -60,7 +61,7 @@ namespace RShell
                 m_UdpHost.MessageReceived += OnMessageReceived;
                 m_UdpHost.Start();
                 Application.quitting += OnApplicationQuit;
-                Debug.Log($"RShell Listening... {port}");    
+                Debug.Log($"RShell Listening... {port}");       
             }
             else
             {
@@ -89,8 +90,11 @@ namespace RShell
             object returnObj;
             FunctionEvaluator.Execute(code, out returnObj);
             var msg = returnObj == null ? "ok" : returnObj.ToString();
-            Debug.Log($"RShell Execute: {code}\n{returnObj}");
-            m_UdpHost.Send(msg);
+
+            if(EnableExecLog)
+                Debug.Log($"RShell Execute: {code}\n{returnObj}");
+                
+            m_UdpHost.Send(msg, code);
         }
 
         public static object Execute(string code)

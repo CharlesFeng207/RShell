@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_GM
+
+using System.Collections.Generic;
 
 namespace RShell
 {
@@ -104,3 +106,5 @@ namespace RShell
     }
     
 }
+
+#endif

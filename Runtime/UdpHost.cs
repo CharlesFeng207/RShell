@@ -17,12 +17,16 @@ namespace RShell
             public int FragIndex;
             public int FragCount;
             public string Content;
+            public string CheckMsg;
         }
+
         
         public int SendMTU = 1000; // bytes
         public int SendInterval = 100; // ms
         
         public event Action<string> MessageReceived;
+        public event Action OnThreadStart;
+
         private readonly UdpClient m_UdpClient;
         private readonly ConcurrentQueue<Message> m_MessagesToSend = new ConcurrentQueue<Message>();
         private bool m_IsSending;
@@ -39,13 +43,13 @@ namespace RShell
             m_UdpClient = new UdpClient(localPort);
         }
 
-        public void Send(string content)
+        public void Send(string content, string checkMsg)
         {
             m_MsgId++;
             
             if (content.Length < SendMTU)
             {
-                AddToSendQueue(content, m_MsgId);
+                AddToSendQueue(content, m_MsgId, checkMsg);
             }
             else
             {
@@ -54,19 +58,20 @@ namespace RShell
                 {
                     var index = i * SendMTU;
                     var len = Mathf.Min(SendMTU, content.Length - index);
-                    AddToSendQueue(content.Substring(index, len), m_MsgId, i, total);
+                    AddToSendQueue(content.Substring(index, len), m_MsgId, checkMsg, i, total);
                 }
             }
         }
 
-        private void AddToSendQueue(string content, int msgId, int fragIndex = 0, int fragCount = 1)
+        private void AddToSendQueue(string content, int msgId, string checkMsg, int fragIndex = 0, int fragCount = 1)
         {
             var message = new Message
             {
                 Content = content,
                 MsgId = msgId,
                 FragIndex = fragIndex,
-                FragCount = fragCount
+                FragCount = fragCount,
+                CheckMsg = checkMsg
             };
 
             m_MessagesToSend.Enqueue(message);
@@ -106,7 +111,7 @@ namespace RShell
         public void Start()
         {
             m_MainContext = SynchronizationContext.Current;
-            m_Thread = new Thread(Run) { Name = "UdpShell" };
+            m_Thread = new Thread(Run) { Name = "RShell", Priority = System.Threading.ThreadPriority.Highest};
             m_Thread.Start();
         }
 
@@ -119,6 +124,8 @@ namespace RShell
         private void Run()
         {
             m_ReceiveRemoteEndPoint = new IPEndPoint(IPAddress.Any, 0);
+            if(OnThreadStart != null) OnThreadStart.Invoke();
+
             while (true)
             {
                 try
@@ -152,7 +159,7 @@ namespace RShell
             var text = Encoding.UTF8.GetString(data, 0, data.Length);
             if (text == "hi")
             {
-                Send("welcome");
+                Send("welcome", text);
             }
             else
             {

@@ -1,0 +1,8 @@
+help // 打开帮助
+Shell.TestSelf() // RShell解释器自测
+Shell.LoadLibrary("libhook.so") // 利用RShell进行注入
+Dumper.Do // 反射打印任意对象
+Screen.SetResolution(500, 300, true) // 设置分辨率
+Application.targetFrameRate  // 帧率
+Application.identifier // 包名
+SystemInfo.deviceModel // 查询设备型号

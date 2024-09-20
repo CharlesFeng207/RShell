@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import os
 import time
 import json
 from enum import Enum
@@ -30,7 +31,6 @@ def receive_message(shell):
             shell.connect_state = ConnectState.Default
             break
 
-
 class RShell(object):
     
     def add_to_buffer(self, msg):
@@ -48,9 +48,10 @@ class RShell(object):
             del self.msgbuffer[msgid]
             buffer.sort(key=lambda x: x['FragIndex'])
             content = "".join([msg['Content'] for msg in buffer])
-
+            
             if content != "welcome":
-                self.waitingMsg = content
+                sendmsg = msg["CheckMsg"] if "CheckMsg" in msg else None
+                self._add_respond_msg(sendmsg, content)
                 
             if self.on_message_received is not None:
                 self.on_message_received(content)
@@ -81,12 +82,13 @@ class RShell(object):
             self.client_socket = None
         pass
 
-    def init_socket(self):
+    def init_socket(self, reconnect = False):
         if self.connect_state != ConnectState.Connecting:
-            print(f"RShell is connecting ... {self.target_ip}:{self.target_port}")
+            reconnectinfo = "(reconnect)" if reconnect else ""
+            print(f"RShell is connecting ... {self.target_ip}:{self.target_port} {reconnectinfo}")
             self.connect_state = ConnectState.Connecting
 
-        self.waitingMsg = None
+        self._reset_respond_msg(None)
         self.msgbuffer = {}
 
         self.close_socket()
@@ -98,45 +100,144 @@ class RShell(object):
         pass
 
     def send(self, message):
+        if self.connect_state != ConnectState.Connected:
+            self.init_socket()
+        self._send(message)
+        pass
+
+    def sendwait(self, message, waittime = 10, retry = 10):
+        self._reset_respond_msg(message)
+        self._send(message)
+        start_time = time.time()
+
+        while True:
+            respond = self._get_respond_msg(message)
+            if respond is None:
+                if time.time() - start_time > waittime: # timeout
+                    if retry == 0:
+                        raise Exception("Timeout while waiting for response.")
+                    print_debug("Timeout while waiting for response. try again.")
+                    self.init_socket(True)
+                    return self.sendwait(message, waittime, retry - 1)
+                else: # wait
+                    time.sleep(0.1)
+            else:
+                return respond
+    
+    def sendwait_print(self, message, waittime = 10, retry = 10):
+        msg = self.sendwait(message, waittime, retry)
+        print(f"rshell send: {message} -> respond:{msg}")
+        return msg
+    
+    def _send(self, message):
         try:
-            if self.connect_state != ConnectState.Connected:
-                self.init_socket()
             self.client_socket.sendto(message.encode('utf-8'), (self.target_ip, self.target_port))    
         except Exception as e:
             print_debug("Error occurred while sending message:", str(e))
         pass
 
-    def sendwait(self, message, retry = 10):
-        self.waitingMsg = None
-        self.send(message)
-        start_time = time.time()
-        while self.waitingMsg is None:
-            if time.time() - start_time > 5:
-                if retry == 0:
-                    raise Exception("Timeout while waiting for response.")
-                print_debug("Timeout while waiting for response. try again.")
-                self.init_socket()
-                return self.sendwait(message, retry - 1)
-            time.sleep(0.1)
-            pass
-        return self.waitingMsg
+    def _reset_respond_msg(self, sendmsg):
+        self.respond_msg = None
 
-if __name__ == '__main__':
+        if sendmsg:
+            self.respond_msg_dic[sendmsg] = None
+        else:
+            self.respond_msg_dic = {}
+        pass
+
+    def _get_respond_msg(self, sendmsg):
+        if self.respond_msg is not None:
+            return self.respond_msg
+        return self.respond_msg_dic[sendmsg] if sendmsg in self.respond_msg_dic else None
+
+    def _add_respond_msg(self, sendmsg, respond):
+        if sendmsg:
+            self.respond_msg_dic[sendmsg] = respond
+        else:
+            self.respond_msg = respond
+        pass
+
+
+# rshell interactive mode
+if __name__ == '__main__': 
+    import subprocess
+    import pyfiglet
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.completion import Completer, Completion
+
+    commands_with_descriptions = None
+    class CustomCompleter(Completer):
+        def get_completions(self, document, complete_event):
+            word_before_cursor = document.get_word_before_cursor().strip().lower()
+            if commands_with_descriptions is None:
+                return
+            for cmd, description in commands_with_descriptions.items():
+                if word_before_cursor in cmd.lower() or word_before_cursor in description.lower():
+                    yield Completion(cmd, start_position=-len(word_before_cursor), display=cmd, display_meta=description)
+
+    def read_commands(path):
+        cmds = {}
+        if not os.path.exists(path):
+            return cmds
+        
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line_striped = line.strip()
+                if line_striped == "":
+                    continue
+                
+                if "//" in line_striped:
+                    cmd, description = line_striped.split("//")
+                    cmds[cmd] = description
+                else:
+                    cmds[line_striped] = ""
+                    pass
+                pass
+            pass
+        return cmds
+
+    os.chdir(sys.path[0])
+
+    commands_with_descriptions = read_commands("commds.txt")
+
     address = sys.argv[1] if len(sys.argv) > 1 else None
     debug_rshell = True
 
     rshell = RShell(address)
-    rshell.on_message_received = lambda msg: print(msg)
+
+    # Generate ASCII art with a specific font
+    ascii_art = pyfiglet.figlet_format("RShell", font="slant")
+    session = PromptSession(completer=CustomCompleter())
+
+    # Print the ASCII art
+    print(ascii_art)
+    print("Type 'h' or 'help' to see available commands.\nControl + C to exit.\n")
 
     try:
         while True:
-            message = input(f"{rshell.target_ip}:{rshell.target_port}>")
-            if message == "":
-                message = "hi"
-            rshell.send(message)
+            message = session.prompt(f"{rshell.target_ip}:{rshell.target_port}>").strip()
+            
+            if message == 'help' or message == 'h':
+                subprocess.Popen("commds.txt", shell=True)
+                continue
+
+            if message.endswith(".txt") and os.path.exists(message):
+                rshell.on_message_received = None
+                cmds = read_commands(message)
+                for c, d in cmds.items():
+                    print(f"// {d}")
+                    rshell.sendwait_print(c)
+            else:
+                rshell.on_message_received = lambda msg: print(msg)
+                if message == "":
+                    message = "hi"
+                rshell.send(message)
+                pass
             time.sleep(0.1)
             pass
     except KeyboardInterrupt:
+        print("Exiting ...")
+    finally:
         rshell.close_socket()
-        print("KeyboardInterrupt")
         pass
+        

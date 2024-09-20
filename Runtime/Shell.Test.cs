@@ -1,4 +1,6 @@
-﻿using System;
+﻿#if UNITY_GM
+
+using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
@@ -8,6 +10,7 @@ namespace RShell
 {
     public static partial class Shell
     {
+
         public static string TestSelf()
         {
             try
@@ -121,6 +124,7 @@ namespace RShell
             }
         }
 
+
         public static string TestLargeStr(int count)
         {
             var sb = new StringBuilder();
@@ -131,5 +135,9 @@ namespace RShell
 
             return sb.ToString();
         }
+    
+
     }
 }
+
+#endif
